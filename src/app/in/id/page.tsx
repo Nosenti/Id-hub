@@ -28,11 +28,11 @@ export default function page() {
 						<div className='grid w-full items-center gap-4'>
 							<div className='flex flex-col space-y-1.5'>
 								<Label htmlFor='name'>Full Name</Label>
-								<Input id='name' placeholder='John Doe' name='full_name' />
+								<Input id='name' placeholder='John Doe' name='fullName' />
 							</div>
 							<div className='flex flex-col space-y-1.5'>
 								<Label htmlFor='email'>ID Number</Label>
-								<Input id='id number' name='id_number'/>
+								<Input id='id number' name='idNumber'/>
 							</div>
 							
 							<Button>Save ID</Button>

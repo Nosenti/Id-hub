@@ -15,18 +15,7 @@ declare module 'next-auth' {
 	}
 }
 
-if (!process.env.MONGODB_URI) {
-	throw new Error('MONGODB_URI is not defined in environment variables');
-}
-const client = new MongoClient(process.env.MONGODB_URI);
 
-async function getUserFromDb(email: string, passwordHash: string) {
-	await client.connect();
-	const db = client.db('id-hub-db');
-	const collection = db.collection('users');
-	const user = await collection.findOne({ email, password: passwordHash });
-	return user;
-}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
 	providers: [

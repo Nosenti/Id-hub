@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from 'next/font/google';
 import "./globals.css";
+import { Toaster } from 'react-hot-toast';
 
 const inter = Inter({
 	weight: ['400', '700'],
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body
         className={`${inter.className} antialiased`}
       >
+        <Toaster position="top-center" />
         {children}
       </body>
     </html>
