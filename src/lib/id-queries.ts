@@ -1,3 +1,4 @@
+"use server"
 import mongoose from 'mongoose';
 import { connectToMongoClient } from './db';
 
@@ -16,9 +17,8 @@ const Id = mongoose.models.Id || mongoose.model('Id', idSchema, 'ids');
 export default async function getAllIdsFromDb() {
 	
 	try {
-		const db = await connectToMongoClient();
-		const collection = db.collection('ids');
-		const ids = await collection.find({}).toArray();
+		await connectToMongoClient();
+		const ids = await Id.find({});
 		return ids;
 	} catch (error) {
 		console.error('Error fetching ids:', error);

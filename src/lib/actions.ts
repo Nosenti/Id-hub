@@ -5,12 +5,13 @@ import User from '@/models/userModel';
 import { connectToMongoClient } from './db';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { redirect } from 'next/navigation';
+import { ObjectId } from 'mongodb';
 
 // Define interfaces
 interface IDDocument {
 	nationalID: string;
 	fullName: string;
+	finder: UserData;
 	createdAt?: Date;
 }
 
@@ -25,6 +26,15 @@ interface User {
 interface IDResponse {
 	success: boolean;
 	message: string;
+	redirectUrl: string;
+}
+
+interface UserData {
+	_id: string;
+	name: string;
+	email: string;
+	nationalID?: string;
+	phone?: string;
 }
 
 interface SignupResponse {
@@ -32,34 +42,50 @@ interface SignupResponse {
 	message: string;
 	token: string;
 	redirectUrl?: string;
+	user?: UserData;
 }
 
 export async function createID(formData: FormData): Promise<IDResponse> {
 	try {
 		const nationalID = formData.get('idNumber')?.toString();
 		const fullName = formData.get('fullName')?.toString();
+		const finderString = formData.get('finder')?.toString();
 
-		if (!nationalID || !fullName) {
+		if (!nationalID || !fullName || !finderString) {
 			throw new Error('Missing required fields');
 		}
+
+		const finder = JSON.parse(finderString) as UserData;
 
 		const newID: IDDocument = {
 			nationalID,
 			fullName,
+			finder,
 			createdAt: new Date()
 		};
 
 		const db = await connectToMongoClient();
 		const collection = db.collection('ids');
 		await collection.insertOne(newID);
-
-		return { success: true, message: 'ID created successfully' };
+		revalidatePath('/');
+		return {
+			success: true,
+			message: 'ID created successfully',
+			redirectUrl: '/in/ids'
+		};
 	} catch (error) {
-		console.log('error: ', error);
 		if (error instanceof Error) {
-			throw new Error(error.message);
+			return {
+				success: false,
+				message: error.message,
+				redirectUrl: ''
+			};
 		}
-		throw new Error('An unknown error occurred');
+		return {
+			success: false,
+			message: 'An unknown error occurred',
+			redirectUrl: ''
+		};
 	}
 }
 
@@ -163,12 +189,32 @@ export async function Signin(formData: FormData): Promise<SignupResponse> {
 			process.env.JWT_SECRET || 'your-fallback-secret',
 			{ expiresIn: '1d' }
 		);
+		// Save user data to localStorage (only works on client-side)
+		if (typeof window !== 'undefined') {
+			localStorage.setItem(
+				'user',
+				JSON.stringify({
+					id: user._id,
+					email: user.email,
+					name: user.name,
+					nationalID: user.nationalID,
+					phone: user.phone
+				})
+			);
+		}
 		console.log('Signed in successfully');
 		revalidatePath('/');
 		return {
 			success: true,
 			message: 'Signed in successfully',
 			token,
+			user: {
+				_id: user._id.toString(),
+				name: user.name,
+				email: user.email,
+				nationalID: user.nationalID,
+				phone: user.phone
+			},
 			redirectUrl: '/in/ids' // Include redirect URL in response
 		};
 	} catch (error) {
@@ -184,6 +230,131 @@ export async function Signin(formData: FormData): Promise<SignupResponse> {
 			success: false,
 			message: 'An unknown error occurred',
 			token: '',
+			redirectUrl: ''
+		};
+	}
+}
+export async function EditProfile(formData: FormData): Promise<SignupResponse> {
+	try {
+		const email = formData.get('email')?.toString();
+		const phone = formData.get('phone')?.toString();
+		const nationalID = formData.get('nationalID')?.toString();
+
+		if (!email) {
+			throw new Error('Email is required');
+		}
+
+		const db = await connectToMongoClient();
+		const usersCollection = db.collection('users');
+
+		// Find and update user
+		const user = await usersCollection.findOneAndUpdate(
+			{ email },
+			{
+				$set: {
+					phone: phone || undefined,
+					nationalID: nationalID || undefined,
+					updatedAt: new Date()
+				}
+			},
+			{ returnDocument: 'after' }
+		);
+
+		if (!user) {
+			throw new Error('User not found');
+		}
+
+		revalidatePath('/');
+		return {
+			success: true,
+			message: 'Profile updated successfully',
+			token: '', // No need to generate new token for profile update
+			user: {
+				_id: user._id.toString(),
+				name: user.name,
+				email: user.email,
+				nationalID: user.nationalID,
+				phone: user.phone
+			},
+			redirectUrl: '/in/profile'
+		};
+	} catch (error) {
+		if (error instanceof Error) {
+			return {
+				success: false,
+				message: error.message,
+				token: '',
+				redirectUrl: ''
+			};
+		}
+		return {
+			success: false,
+			message: 'An unknown error occurred',
+			token: '',
+			redirectUrl: ''
+		};
+	}
+}
+
+export async function ClaimID(
+	id: string,
+	claimer: UserData
+): Promise<IDResponse> {
+	try {
+		console.log('id: ', id);
+		console.log('claimer: ', claimer);
+		if (!id || !claimer) {
+			
+			throw new Error('Missing required fields');
+		}
+
+		const db = await connectToMongoClient();
+		const collection = db.collection('ids');
+
+		console.log('Searching for ID:', id);
+		console.log('ID type:', typeof id);
+		// Find the ID document
+		const idDoc = await collection.findOne({ _id: new ObjectId(id) });
+		console.log('Found document:', idDoc);
+
+		if (!idDoc) {
+			throw new Error('ID not found');
+		}
+
+		// Check if the ID belongs to the claimer
+		if (idDoc.finder && idDoc.finder?._id === claimer?._id) {
+			throw new Error('You cannot claim your own ID');
+		}
+
+		// Update the ID document to mark it as claimed
+		await collection.updateOne(
+			{ _id: new ObjectId(id) },
+			{
+				$set: {
+					claimed: true,
+					claimedBy: claimer,
+					claimedAt: new Date()
+				}
+			}
+		);
+
+		revalidatePath('/');
+		return {
+			success: true,
+			message: 'ID claimed successfully',
+			redirectUrl: '/in/ids'
+		};
+	} catch (error) {
+		if (error instanceof Error) {
+			return {
+				success: false,
+				message: error.message,
+				redirectUrl: ''
+			};
+		}
+		return {
+			success: false,
+			message: 'An unknown error occurred',
 			redirectUrl: ''
 		};
 	}

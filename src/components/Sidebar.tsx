@@ -1,16 +1,33 @@
+'use client'
 import React from 'react'
+import SidebarButton from './ui/SidebarButton'
+import { Button } from './ui/button';
 
 export default function Sidebar() {
   return (
-	<div className='bg-primary w-64 h-full text-white flex flex-col justify-between p-6'>
-		  <div>
-			  
-		  </div>
-		  <ul>
-			  <li>Posts</li>
-			  <li>Notifications</li>
-			  <li>Profile</li>
-		  </ul>
-	</div>
-  )
+		<>
+			<div className='bg-primary w-64 min-h-screen text-white flex flex-col p-6 fixed justify-between'>
+				<div>
+					<div className='my-4 text-2xl font-bold'>IDHub</div>
+					<ul className='mt-4'>
+						<li>
+							<SidebarButton path='/in/ids'>Posts</SidebarButton>
+						</li>
+						<li>
+							<SidebarButton path='/in/notifications'>Notifications</SidebarButton>
+						</li>
+						<li>
+							<SidebarButton path='/in/profile'>Profile</SidebarButton>
+						</li>
+					</ul>
+				</div>
+
+				<div>
+					<Button variant='secondary'>Signout</Button>
+				</div>
+			</div>
+			{/* This div acts as a spacer to prevent content overlap */}
+			<div className='w-64'></div>
+		</>
+	);
 }

@@ -14,15 +14,26 @@ import React from 'react';
 import { toast } from 'react-hot-toast';
 
 export default function page() {
-	const handleSubmit = async (event) => {
+	interface SigninResponse {
+		success: boolean;
+		token?: string;
+		user?: object;
+		message?: string;
+		redirectUrl?: string;
+	}
+
+	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const formData = new FormData(event.currentTarget);
-		const response = await Signin(formData);
+		const response: SigninResponse = await Signin(formData);
 
 		if (response.success) {
-			localStorage.setItem('token', response.token);
+			localStorage.setItem('token', response.token!);
+			localStorage.setItem('loggedInUser', JSON.stringify(response.user!));
 			toast.success('Signed in successfully');
-			window.location.href = response.redirectUrl;
+			if (response.redirectUrl) {
+				window.location.href = response.redirectUrl;
+			}
 		} else {
 			toast.error(response.message || 'Sign in failed');
 		}

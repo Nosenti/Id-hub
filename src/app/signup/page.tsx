@@ -14,14 +14,22 @@ import React from 'react';
 import { toast } from 'react-hot-toast';
 
 export default function page() {
-	const handleSubmit = async (event) => {
+	interface SignupResponse {
+		success: boolean;
+		message?: string;
+		redirectUrl?: string;
+	}
+
+	const handleSubmit = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
 		event.preventDefault();
 		const formData = new FormData(event.currentTarget);
-		const response = await Signup(formData);
+		const response: SignupResponse = await Signup(formData);
 
 		if (response.success) {
 			toast.success('Signed Up successfully');
-			window.location.href = response.redirectUrl; // Perform redirection
+			if (response.redirectUrl) {
+				window.location.href = response.redirectUrl;
+			}
 		} else {
 			toast.error(response.message || 'Sign Up failed');
 		}
