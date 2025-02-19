@@ -2,6 +2,7 @@
 import React from 'react'
 import SidebarButton from './ui/SidebarButton'
 import { Button } from './ui/button';
+import toast from 'react-hot-toast';
 
 export default function Sidebar() {
   return (
@@ -23,7 +24,16 @@ export default function Sidebar() {
 				</div>
 
 				<div>
-					<Button variant='secondary'>Signout</Button>
+					<Button 
+						variant='secondary' 
+						onClick={() => {
+							localStorage.removeItem('loggedInUser');
+							toast.success('Logged out successfully!');
+							window.location.href = '/login';
+						}}
+					>
+						Signout
+					</Button>
 				</div>
 			</div>
 			{/* This div acts as a spacer to prevent content overlap */}

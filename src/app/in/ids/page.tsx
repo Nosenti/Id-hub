@@ -21,6 +21,14 @@ export default function Page() {
 	
 	const [ids, setIds] = useState<ID[]>([]);
 
+	const storedUser = localStorage.getItem('loggedInUser');
+	const claimer = storedUser ? JSON.parse(storedUser) : null;
+	interface ClaimIDResponse {
+		success: boolean;
+		redirectUrl?: string;
+		message?: string;
+	}
+
 	useEffect(() => {
 		const fetchIds = async () => {
 			const res = await getAllIdsFromDb();
@@ -37,13 +45,7 @@ export default function Page() {
 		fetchIds();
 	}, [])
 	
-	const storedUser = localStorage.getItem('loggedInUser');
-	const claimer = storedUser ? JSON.parse(storedUser) : null;
-	interface ClaimIDResponse {
-		success: boolean;
-		redirectUrl?: string;
-		message?: string;
-	}
+	
 
 	const handleSubmit = async (event: React.FormEvent, id: string): Promise<void> => {
 		event.preventDefault();
